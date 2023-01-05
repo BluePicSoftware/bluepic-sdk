@@ -1,6 +1,6 @@
 {
   "name": "bluepic",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "type": "module",
   "private": false,
   "engines": {
@@ -48,7 +48,7 @@
   "bugs": {
     "url": "https://github.com/BluePicSoftware/bluepic-sdk/issues"
   },
-  "homepage": "https://learn.bluepic.de",
+  "homepage": "https://learn.bluepic.de/embedded/basics",
   "keywords": ["bluepic", "sdk", "api"],
   "author": "Maurice Conrad",
   "license": "ISC",
