@@ -41,7 +41,15 @@ export class BluepicEmbedded extends EventEmitter {
     this.emit('detroy');
   }
   get data() {
-    return this.__data;
+    return new Proxy(this.__data ?? {}, {
+      set: (target, key, value) => {
+        this.data = {
+          ...target,
+          [key]: value
+        };
+        return true;
+      }
+    });
   }
   set data(newData) {
     if (this.iframe.contentWindow) {
