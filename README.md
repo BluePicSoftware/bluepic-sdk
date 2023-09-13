@@ -32,7 +32,7 @@ embedded.on('upate', newData => {
 
 ```typescript
 // This will return a copy of the current data (if the template finished loading )
-const currData = jausembedded.data;
+const currData = embedded.data;
 ```
 
 ## Set data
