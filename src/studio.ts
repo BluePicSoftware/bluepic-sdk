@@ -192,8 +192,7 @@ export class TemplateFile extends SuperClient {
 
     return element;
   }
-  async updateElement(elementId: string, propertyName: string, newExpr: string) {
-    const serial = _.cloneDeep(await this.serial);
+  static updateElement(serial: Template.Serial, elementId: string, propertyName: string, newExpr: string) {
     const allElements = getAllElements(serial.context);
     const element = allElements.find((e) => e.id === elementId);
     if (element) {
@@ -202,6 +201,10 @@ export class TemplateFile extends SuperClient {
         value: newExpr,
       };
     }
+  }
+  async updateElement(elementId: string, propertyName: string, newExpr: string) {
+    const serial = _.cloneDeep(await this.serial);
+    TemplateFile.updateElement(serial, elementId, propertyName, newExpr);
     return serial;
   }
   async duplicate(name: string, folder?: string) {
