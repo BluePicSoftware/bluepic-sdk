@@ -1,65 +1,67 @@
-import EventEmitter from 'eventemitter3'
+import EventEmitter from "eventemitter3";
+
+import * as Studio from "./studio";
+export { Studio };
 
 export class BluepicEmbedded extends EventEmitter {
   private iframe: HTMLIFrameElement;
   private __data?: { [k: string]: unknown };
   constructor(iframe: HTMLIFrameElement | string) {
     super();
-    if (typeof iframe === 'string') {
+    if (typeof iframe === "string") {
       const queriedFrame = document.querySelector(iframe);
       if (queriedFrame && queriedFrame instanceof HTMLIFrameElement) {
         this.iframe = queriedFrame;
+      } else {
+        throw new Error("iframe query selector does not point to an iframe");
       }
-      else {
-        throw new Error('iframe query selector does not point to an iframe');
-      }
-    }
-    else {
+    } else {
       this.iframe = iframe;
     }
 
     const messageHandler = ({ data }: MessageEvent) => {
-      if (data.type === 'update:ready') {
+      if (data.type === "update:ready") {
         const state = JSON.parse(data.data);
         if (state) {
-          this.emit('load');
+          this.emit("load");
         }
-      }
-      else if (data.type === 'update:data') {
+      } else if (data.type === "update:data") {
         const newData = JSON.parse(data.data);
         this.__data = newData;
-        this.emit('update', newData);
+        this.emit("update", newData);
       }
-    }
+    };
 
-    window.addEventListener('message', messageHandler);
-    this.on('detroy', () => {
-      window.removeEventListener('message', messageHandler)
+    window.addEventListener("message", messageHandler);
+    this.on("detroy", () => {
+      window.removeEventListener("message", messageHandler);
     });
   }
   destroy() {
-    this.emit('detroy');
+    this.emit("detroy");
   }
   get data() {
     return new Proxy(this.__data ?? {}, {
       set: (target, key, value) => {
         this.data = {
           ...target,
-          [key]: value
+          [key]: value,
         };
         return true;
-      }
+      },
     });
   }
   set data(newData) {
     if (this.iframe.contentWindow) {
-      this.iframe.contentWindow.postMessage({
-        type: 'set:data',
-        data: JSON.stringify(newData)
-      }, '*');
-    }
-    else {
-      throw new Error('contentWindow of iframe cannot be reached');
+      this.iframe.contentWindow.postMessage(
+        {
+          type: "set:data",
+          data: JSON.stringify(newData),
+        },
+        "*"
+      );
+    } else {
+      throw new Error("contentWindow of iframe cannot be reached");
     }
   }
 }
