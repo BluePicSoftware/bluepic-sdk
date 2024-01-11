@@ -43,7 +43,7 @@ export class StudioClient extends SuperClient {
     const folder = folders.find((f) => f.name === folderName);
     return folder;
   }
-  async *getProjects(folderName: string) {
+  async *getProjects(folderName: string, perIteration = 1) {
     const folder = await this.getFolderByName(folderName);
     let index = 0;
     let total = Infinity;
@@ -52,7 +52,7 @@ export class StudioClient extends SuperClient {
         endpoint: ['files'],
         query: {
           start: index,
-          limit: 1,
+          limit: perIteration,
           mode: 'read',
           tags: ['studio', 'project'].join(','),
           type: '^application/json\\+bx$',
@@ -61,7 +61,9 @@ export class StudioClient extends SuperClient {
       });
       total = files.total;
       index += files.files.length;
-      yield files.files[0];
+      for (const file of files.files) {
+        yield file;
+      }
     }
   }
   async listProjects(folderName: string) {
