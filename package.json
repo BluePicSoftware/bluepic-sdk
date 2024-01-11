@@ -57,6 +57,7 @@
   "author": "Maurice Conrad",
   "license": "ISC",
   "devDependencies": {
+    "@types/lodash": "^4.14.202",
     "@typescript-eslint/eslint-plugin": "^5.48.0",
     "@typescript-eslint/parser": "^5.48.0",
     "eslint": "^8.31.0",
@@ -69,6 +70,7 @@
   },
   "dependencies": {
     "@bluepic/types": "^0.1.234",
-    "eventemitter3": "^5.0.0"
+    "eventemitter3": "^5.0.0",
+    "lodash": "^4.17.21"
   }
 }

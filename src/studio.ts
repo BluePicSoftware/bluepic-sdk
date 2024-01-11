@@ -1,5 +1,6 @@
 import { StudioResources, Template } from '@bluepic/types';
 import { getQuery } from './util/query';
+import _ from 'lodash';
 
 const studioResourcesBaseUrl = 'https://studio-resources.c2.bluepic.io';
 //const studioResourcesBaseUrl = 'http://localhost:8082';
@@ -190,6 +191,18 @@ export class TemplateFile extends SuperClient {
     const element = allElements.find((e) => e.id === elementId);
 
     return element;
+  }
+  async updateElement(elementId: string, propertyName: string, newExpr: string) {
+    const serial = _.cloneDeep(await this.serial);
+    const allElements = getAllElements(serial.context);
+    const element = allElements.find((e) => e.id === elementId);
+    if (element) {
+      element.properties[propertyName as keyof typeof element.properties] = {
+        type: 'expression',
+        value: newExpr,
+      };
+    }
+    return serial;
   }
   async duplicate(name: string, folder?: string) {
     const file = await this.file;
