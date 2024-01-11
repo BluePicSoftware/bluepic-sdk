@@ -5,9 +5,9 @@ name: Node.js Package Publish
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 jobs:
   publish-npm:
@@ -19,6 +19,8 @@ jobs:
           node-version: 16
           registry-url: https://registry.npmjs.org/
       - run: npm install
+        env:
+          NODE_AUTH_TOKEN: ${{secrets.NODE_AUTH_TOKEN}}
       - run: npm run lint
       - run: npm run build
       - run: npm publish
