@@ -62,7 +62,7 @@ export class StudioClient extends SuperClient {
       total = files.total;
       index += files.files.length;
       for (const file of files.files) {
-        yield file;
+        yield new TemplateFile(this.auth, file);
       }
     }
   }
