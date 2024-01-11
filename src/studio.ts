@@ -79,6 +79,12 @@ export class StudioClient extends SuperClient {
     });
     return new TemplateFile(this.auth, newProjectRecord);
   }
+  async deleteProject(projectId: string) {
+    return await this.studioResourcesCall<{ success: boolean }>({
+      method: 'DELETE',
+      endpoint: ['files', projectId],
+    });
+  }
 }
 
 function getAllElements(slot: Template.Element[]): Template.Element[] {
