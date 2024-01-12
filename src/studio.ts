@@ -182,6 +182,7 @@ export class TemplateFile extends SuperClient {
         previewType: 'webp',
       },
     });
+    this.emit('update');
   }
   async duplicate(name: string, folder?: string) {
     const file = await this.file;
