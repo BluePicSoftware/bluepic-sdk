@@ -201,7 +201,7 @@ export class TemplateFile extends SuperClient {
 }
 
 export class TemplateSerial {
-  constructor(private serial: Template.Serial, templateFile: TemplateFile) {
+  constructor(private serial: Template.Serial, private templateFile: TemplateFile) {
     templateFile.on('update', async () => {
       this.serial = await templateFile.getSerial();
     });
@@ -243,5 +243,8 @@ export class TemplateSerial {
   }
   getSerial() {
     return this.serial;
+  }
+  update() {
+    return this.templateFile.updateSerial(this.serial);
   }
 }
