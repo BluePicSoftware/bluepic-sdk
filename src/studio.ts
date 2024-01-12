@@ -218,6 +218,8 @@ export class TemplateFile extends SuperClient {
         duplicateObjects: ['default', 'preview'].join(','),
       },
     });
-    return new TemplateFile(this.auth, newProjectRecord);
+    const templateFile = new TemplateFile(this.auth, newProjectRecord);
+    await templateFile.setName(name);
+    return templateFile;
   }
 }
