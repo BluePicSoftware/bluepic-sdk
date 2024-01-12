@@ -132,13 +132,16 @@ function getAllElements(slot: Template.Element[]): Template.Element[] {
 }
 
 export class TemplateFile extends SuperClient {
-  serial: Promise<Template.Serial>;
+  // serial: Promise<Template.Serial>;
   file: Promise<StudioResources.File>;
   constructor(auth: string, file: StudioResources.File | string) {
     super(auth);
     this.file = typeof file === 'string' ? this.studioResourcesCall<StudioResources.File>({ endpoint: ['files', file] }) : new Promise((resolve) => resolve(file));
-    this.serial = this.studioResourcesCall<Template.Serial>({ endpoint: ['files', typeof file === 'string' ? file : file._id, 'default'] });
     //this.serial = this.getTemplateSerial();
+  }
+  async getTemplateSerial() {
+    const file = await this.file;
+    return this.studioResourcesCall<Template.Serial>({ endpoint: ['files', file._id, 'default'] });
   }
   async patchFile(patchObj: { name?: string }) {
     const file = await this.file;
@@ -157,7 +160,7 @@ export class TemplateFile extends SuperClient {
     return file.name;
   }
   async setName(newName: string) {
-    const serial = await this.serial;
+    const serial = await this.getTemplateSerial();
     serial.name = newName;
     //await this.patchFile({ name: newName });
     const newSerial = {
@@ -186,7 +189,7 @@ export class TemplateFile extends SuperClient {
     });
   }
   async getElement(elementId: string) {
-    const serial = await this.serial;
+    const serial = await this.getTemplateSerial();
     const allElements = getAllElements(serial.context);
     const element = allElements.find((e) => e.id === elementId);
 
@@ -203,7 +206,7 @@ export class TemplateFile extends SuperClient {
     }
   }
   async updateElement(elementId: string, propertyName: string, newExpr: string) {
-    const serial = _.cloneDeep(await this.serial);
+    const serial = _.cloneDeep(await this.getTemplateSerial());
     TemplateFile.updateElement(serial, elementId, propertyName, newExpr);
     return serial;
   }
