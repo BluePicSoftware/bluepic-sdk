@@ -1,6 +1,7 @@
 import { StudioResources, Template } from '@bluepic/types';
 import { getQuery } from './util/query';
 import _ from 'lodash';
+import { EventEmitter } from 'events';
 
 const studioResourcesBaseUrl = 'https://studio-resources.c2.bluepic.io';
 //const studioResourcesBaseUrl = 'http://localhost:8082';
@@ -9,9 +10,10 @@ const studioResourcesBaseUrl = 'https://studio-resources.c2.bluepic.io';
 //   const files = await fetch(`${ studioResourcesBaseUrl }/api/files`).then(r => r.json());
 // }
 
-export class SuperClient {
+export class SuperClient extends EventEmitter {
   auth: string;
   constructor(auth: string) {
+    super();
     this.auth = auth;
   }
   async studioResourcesCall<T>({ endpoint, query, method, body, contentType }: { endpoint: string[]; query?: { [k: string]: unknown }; method?: string; body?: any; contentType?: string }) {
@@ -111,37 +113,27 @@ export class StudioClient extends SuperClient {
   }
 }
 
-function getAllElements(slot: Template.Element[]): Template.Element[] {
-  return [
-    ...slot,
-    ...slot.flatMap((element) => {
-      const childElements = (() => {
-        if (element.name === 'group') {
-          return [...element.slots.default, ...(element.slots.mask ?? [])];
-        } else if (element.name === 'mask') {
-          return [...element.slots.default, ...element.slots.mask];
-        } else if (element.name === 'iteration') {
-          return element.child ? [element.child] : [];
-        } else {
-          return [];
-        }
-      })();
-      return getAllElements(childElements);
-    }),
-  ];
-}
-
 export class TemplateFile extends SuperClient {
   // serial: Promise<Template.Serial>;
-  file: Promise<StudioResources.File>;
+  file!: Promise<StudioResources.File>;
   constructor(auth: string, file: StudioResources.File | string) {
     super(auth);
-    this.file = typeof file === 'string' ? this.studioResourcesCall<StudioResources.File>({ endpoint: ['files', file] }) : new Promise((resolve) => resolve(file));
+    this.getFile(file);
+    this.on('update', () => {
+      this.getFile(file);
+    });
     //this.serial = this.getTemplateSerial();
   }
-  async getTemplateSerial() {
+  private async getFile(file: StudioResources.File | string) {
+    this.file = typeof file === 'string' ? this.studioResourcesCall<StudioResources.File>({ endpoint: ['files', file] }) : new Promise((resolve) => resolve(file));
+  }
+  async getSerial() {
     const file = await this.file;
-    return this.studioResourcesCall<Template.Serial>({ endpoint: ['files', file._id, 'default'] });
+    return await this.studioResourcesCall<Template.Serial>({ endpoint: ['files', file._id, 'default'] });
+  }
+  async getTemplateSerial() {
+    const serial = await this.getSerial();
+    return new TemplateSerial(serial, this);
   }
   async patchFile(patchObj: { name?: string }) {
     const file = await this.file;
@@ -150,6 +142,7 @@ export class TemplateFile extends SuperClient {
       endpoint: ['files', file._id],
       body: patchObj,
     });
+    this.emit('update');
     if (result.success) {
       return true;
     }
@@ -160,7 +153,7 @@ export class TemplateFile extends SuperClient {
     return file.name;
   }
   async setName(newName: string) {
-    const serial = await this.getTemplateSerial();
+    const serial = await this.getSerial();
     serial.name = newName;
     //await this.patchFile({ name: newName });
     const newSerial = {
@@ -168,6 +161,8 @@ export class TemplateFile extends SuperClient {
       name: newName,
     };
     await this.updateSerial(newSerial);
+
+    this.emit('update');
 
     // await this.updateSerial({
     //   ...serial,
@@ -188,28 +183,6 @@ export class TemplateFile extends SuperClient {
       },
     });
   }
-  async getElement(elementId: string) {
-    const serial = await this.getTemplateSerial();
-    const allElements = getAllElements(serial.context);
-    const element = allElements.find((e) => e.id === elementId);
-
-    return element;
-  }
-  static updateElement(serial: Template.Serial, elementId: string, propertyName: string, newExpr: string) {
-    const allElements = getAllElements(serial.context);
-    const element = allElements.find((e) => e.id === elementId);
-    if (element) {
-      element.properties[propertyName as keyof typeof element.properties] = {
-        type: 'expression',
-        value: newExpr,
-      };
-    }
-  }
-  async updateElement(elementId: string, propertyName: string, newExpr: string) {
-    const serial = _.cloneDeep(await this.getTemplateSerial());
-    TemplateFile.updateElement(serial, elementId, propertyName, newExpr);
-    return serial;
-  }
   async duplicate(name: string, folder?: string) {
     const file = await this.file;
     const newProjectRecord = await this.studioResourcesCall<StudioResources.File>({
@@ -224,5 +197,51 @@ export class TemplateFile extends SuperClient {
     const templateFile = new TemplateFile(this.auth, newProjectRecord);
     await templateFile.setName(name);
     return templateFile;
+  }
+}
+
+export class TemplateSerial {
+  constructor(private serial: Template.Serial, templateFile: TemplateFile) {
+    templateFile.on('update', async () => {
+      this.serial = await templateFile.getSerial();
+    });
+  }
+  static getAllElements(slot: Template.Element[]): Template.Element[] {
+    return [
+      ...slot,
+      ...slot.flatMap((element) => {
+        const childElements = (() => {
+          if (element.name === 'group') {
+            return [...element.slots.default, ...(element.slots.mask ?? [])];
+          } else if (element.name === 'mask') {
+            return [...element.slots.default, ...element.slots.mask];
+          } else if (element.name === 'iteration') {
+            return element.child ? [element.child] : [];
+          } else {
+            return [];
+          }
+        })();
+        return TemplateSerial.getAllElements(childElements);
+      }),
+    ];
+  }
+  async getElement(elementId: string) {
+    const allElements = TemplateSerial.getAllElements(this.serial.context);
+    const element = allElements.find((e) => e.id === elementId);
+
+    return element;
+  }
+  updateElement(elementId: string, propertyName: string, newExpr: string) {
+    const allElements = TemplateSerial.getAllElements(this.serial.context);
+    const element = allElements.find((e) => e.id === elementId);
+    if (element) {
+      element.properties[propertyName as keyof typeof element.properties] = {
+        type: 'expression',
+        value: newExpr,
+      };
+    }
+  }
+  getSerial() {
+    return this.serial;
   }
 }
