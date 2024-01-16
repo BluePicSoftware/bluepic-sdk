@@ -125,7 +125,7 @@ export class TemplateFile extends SuperClient {
     //this.serial = this.getTemplateSerial();
   }
   private async getFile(file: StudioResources.File | string) {
-    this.file = typeof file === 'string' ? this.studioResourcesCall<StudioResources.File>({ endpoint: ['files', file] }) : new Promise((resolve) => resolve(file));
+    this.file = typeof file === 'string' ? this.studioResourcesCall<StudioResources.File>({ endpoint: ['files', file], query: { meta: true } }) : new Promise((resolve) => resolve(file));
   }
   async getSerial() {
     const file = await this.file;
